@@ -6,33 +6,53 @@
   <!-- Chart.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    body { font-family: sans-serif; padding: 20px; }
-    h1 { margin-bottom: 20px; }
-    canvas { max-width: 800px; }
+    body {
+      font-family: sans-serif;
+      padding: 16px;
+      max-width: 800px;
+      margin: auto;
+    }
+    h1 {
+      margin-bottom: 16px;
+      font-size: 1.5rem;
+    }
+    #intro {
+      margin-bottom: 24px;
+      padding: 16px;
+      background: #f9f9f9;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      line-height: 1.5;
+    }
+    /* キャンバスの高さを固定し、横幅は100% */
+    #barChart {
+      width: 100%;
+      height: 400px;
+    }
   </style>
 </head>
 <body>
-  <h1>ユニットオリジナル曲 -ランキング画面-</h1>
-  <!-- 追加：背景説明セクション -->
-  <section id="intro" style="margin-bottom: 40px; padding: 20px; background: #f9f9f9; border-radius: 8px;">
-    <h2>◼︎このページについて</h2>
-    <p>
-      ここでは、「ユニットオリジナル曲イベント」に参加した
-      各グループの応援ポイントの平均得点を比較して、表示しています。
-      ※本ページは、最終結果とは異なる可能性がございますので、事前にご了承ください。
-    </p>
+  <!-- 追加：説明文 -->
+  <section id="intro">
+    ここでは、「ユニットオリジナル曲イベント」に参加した各グループの応援ポイントの平均得点を比較して、表示しています。<br>
+    ※本ページは、最終結果とは異なる可能性がございますので、事前にご了承ください。
   </section>
+
+  <h1>ユニットオリジナル曲 -ランキング画面-</h1>
   <canvas id="barChart"></canvas>
 
   <script>
-    // ——（1）可視化したい eventId のリスト——
+    // ——（1）表示したい eventId のリスト——
     const eventIds = [
       '01JPGY77RX9AHKM3TTQ12FE6JT',
-      '01JPGY77RX9AHKM3TTQ12FE6JT'
-      // さらに他の eventId を追加…
+      // ここに他の eventId を追加してください（カンマを忘れずに）
     ];
 
-    // ——（2）すべての eventId について proxy 経由で JSON を取得——
+    // totals, counts は後でツールチップで使うために外側で宣言
+    let totals = [];
+    let counts = [];
+
+    // ——（2）全イベントのデータを proxy 経由で取得——
     const fetches = eventIds.map(id =>
       fetch(`/api/proxy?eventId=${id}`)
         .then(res => {
@@ -43,22 +63,25 @@
 
     Promise.all(fetches)
       .then(results => {
-        const labels = [];   // グループ名(event.name)
+        const labels = [];   // イベント名
         const averages = []; // 平均点
 
         results.forEach(json => {
           // (a) グループ名を取得
           labels.push(json.event.name);
 
-          // (b) 全タブのスコアをまとめる
+          // (b) 全タブの全メンバーのスコアをまとめる
           const scores = json.rank_tabs.flatMap(tab =>
             tab.ranks.map(r => r.score)
           );
 
           // (c) 合計と平均を計算
           const total = scores.reduce((sum, x) => sum + x, 0);
-          const avg = total / (scores.length || 1);
+          const count = scores.length || 1;
+          const avg = total / count;
 
+          totals.push(total);
+          counts.push(count);
           averages.push(Math.round(avg));
         });
 
@@ -86,12 +109,32 @@
           }]
         },
         options: {
-          indexAxis: 'y',        // 横棒にする
+          responsive: true,
+          maintainAspectRatio: false,
+          indexAxis: 'y',        // 横棒グラフにする
           scales: {
-            x: { beginAtZero: true }
+            x: {
+              beginAtZero: true,
+              ticks: { font: { size: 14 } }
+            },
+            y: {
+              ticks: { font: { size: 14 } }
+            }
           },
           plugins: {
-            legend: { display: false }
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: function(ctx) {
+                  const idx = ctx.dataIndex;
+                  return [
+                    `平均点: ${ctx.formattedValue}`,
+                    `合計点: ${totals[idx]}`,
+                    `ユニット人数: ${counts[idx]}`
+                  ];
+                }
+              }
+            }
           }
         }
       });
