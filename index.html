@@ -120,7 +120,7 @@
                   const i = ctx.dataIndex;
                   return [
                     `平均点: ${ctx.formattedValue}`,
-                    `合計点: ${totals[i].formattedValue}}`,
+                    `合計点: ${totals[i].toLocaleString()}`, 
                     `ユニット人数: ${counts[i]}`
                   ];
                 }
