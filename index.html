@@ -2,24 +2,90 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Pococha Ranking Viewer</title>
+  <title>ユニットオリジナル曲 -ランキング画面-</title>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    h1 { margin-bottom: 20px; }
+    canvas { max-width: 800px; }
+  </style>
 </head>
 <body>
-  <h1>Pococha ランキング</h1>
-  <pre id="output">読み込み中…</pre>
+  <h1>ユニットオリジナル曲 -ランキング画面-</h1>
+  <canvas id="barChart"></canvas>
 
   <script>
-    // 中継API を叩く
-    fetch('/api/proxy')
-      .then(res => res.json())
-      .then(data => {
-        document.getElementById('output').textContent
-          = JSON.stringify(data, null, 2);
+    // ——（1）可視化したい eventId のリスト——
+    const eventIds = [
+      '01JPGY77RX9AHKM3TTQ12FE6JT'
+      // さらに他の eventId を追加…
+    ];
+
+    // ——（2）すべての eventId について proxy 経由で JSON を取得——
+    const fetches = eventIds.map(id =>
+      fetch(`/api/proxy?eventId=${id}`)
+        .then(res => {
+          if (!res.ok) throw new Error(`proxy エラー: ${res.status}`);
+          return res.json();
+        })
+    );
+
+    Promise.all(fetches)
+      .then(results => {
+        const labels = [];   // グループ名(event.name)
+        const averages = []; // 平均点
+
+        results.forEach(json => {
+          // (a) グループ名を取得
+          labels.push(json.event.name);
+
+          // (b) 全タブのスコアをまとめる
+          const scores = json.rank_tabs.flatMap(tab =>
+            tab.ranks.map(r => r.score)
+          );
+
+          // (c) 合計と平均を計算
+          const total = scores.reduce((sum, x) => sum + x, 0);
+          const avg = total / (scores.length || 1);
+
+          averages.push(Math.round(avg));
+        });
+
+        drawChart(labels, averages);
       })
       .catch(err => {
-        document.getElementById('output').textContent
-          = '取得に失敗しました: ' + err;
+        document.body.insertAdjacentHTML(
+          'beforeend',
+          '<p style="color:red;">データ取得中にエラーが発生しました。</p>'
+        );
+        console.error(err);
       });
+
+    // ——（3）Chart.js で横棒グラフを描画——
+    function drawChart(labels, data) {
+      const ctx = document.getElementById('barChart').getContext('2d');
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: '平均得点',
+            data: data,
+            barThickness: 20
+          }]
+        },
+        options: {
+          indexAxis: 'y',        // 横棒にする
+          scales: {
+            x: { beginAtZero: true }
+          },
+          plugins: {
+            legend: { display: false }
+          }
+        }
+      });
+    }
   </script>
 </body>
 </html>
