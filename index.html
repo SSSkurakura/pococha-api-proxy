@@ -24,34 +24,40 @@
       font-size: 0.95rem;
       line-height: 1.5;
     }
-    /* キャンバスの高さを固定し、横幅は100% */
+    /* 追加：グラフを包むコンテナ */
+    .chart-container {
+      max-height: 400px;    /* 高さ上限 */
+      overflow-y: auto;     /* はみ出したら縦スクロール */
+      margin-bottom: 24px;
+    }
+    /* canvas 自体は幅100% */
     #barChart {
       width: 100%;
-      height: 400px;
+      height: auto;
     }
   </style>
 </head>
 <body>
-  <h1>ユニットオリジナル曲 -ランキング画面-</h1>
-  <!-- 追加：説明文 -->
   <section id="intro">
     ここでは、「ユニットオリジナル曲イベント」に参加した各グループの応援ポイントの平均得点を比較して、表示しています。<br>
     ※本ページは、最終結果とは異なる可能性がございますので、事前にご了承ください。
   </section>
-  <canvas id="barChart"></canvas>
+
+  <h1>ユニットオリジナル曲 -ランキング画面-</h1>
+
+  <!-- ここを div.chart-container でラップ -->
+  <div class="chart-container">
+    <canvas id="barChart"></canvas>
+  </div>
 
   <script>
-    // ——（1）表示したい eventId のリスト——
     const eventIds = [
       '01JPGY77RX9AHKM3TTQ12FE6JT',
-      // ここに他の eventId を追加してください（カンマを忘れずに）
+      // 他の eventId をカンマ区切りで追加
     ];
 
-    // totals, counts は後でツールチップで使うために外側で宣言
-    let totals = [];
-    let counts = [];
+    let totals = [], counts = [];
 
-    // ——（2）全イベントのデータを proxy 経由で取得——
     const fetches = eventIds.map(id =>
       fetch(`/api/proxy?eventId=${id}`)
         .then(res => {
@@ -62,26 +68,18 @@
 
     Promise.all(fetches)
       .then(results => {
-        const labels = [];   // イベント名
-        const averages = []; // 平均点
+        const labels = [], averages = [];
 
         results.forEach(json => {
-          // (a) グループ名を取得
           labels.push(json.event.name);
-
-          // (b) 全タブの全メンバーのスコアをまとめる
           const scores = json.rank_tabs.flatMap(tab =>
             tab.ranks.map(r => r.score)
           );
-
-          // (c) 合計と平均を計算
-          const total = scores.reduce((sum, x) => sum + x, 0);
+          const total = scores.reduce((s, x) => s + x, 0);
           const count = scores.length || 1;
-          const avg = total / count;
-
           totals.push(total);
           counts.push(count);
-          averages.push(Math.round(avg));
+          averages.push(Math.round(total / count));
         });
 
         drawChart(labels, averages);
@@ -94,7 +92,6 @@
         console.error(err);
       });
 
-    // ——（3）Chart.js で横棒グラフを描画——
     function drawChart(labels, data) {
       const ctx = document.getElementById('barChart').getContext('2d');
       new Chart(ctx, {
@@ -110,26 +107,21 @@
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          indexAxis: 'y',        // 横棒グラフにする
+          indexAxis: 'y',
           scales: {
-            x: {
-              beginAtZero: true,
-              ticks: { font: { size: 14 } }
-            },
-            y: {
-              ticks: { font: { size: 14 } }
-            }
+            x: { beginAtZero: true, ticks: { font: { size: 14 } } },
+            y: { ticks: { font: { size: 14 } } }
           },
           plugins: {
             legend: { display: false },
             tooltip: {
               callbacks: {
-                label: function(ctx) {
-                  const idx = ctx.dataIndex;
+                label: ctx => {
+                  const i = ctx.dataIndex;
                   return [
                     `平均点: ${ctx.formattedValue}`,
-                    `合計点: ${totals[idx]}`,
-                    `ユニット人数: ${counts[idx]}`
+                    `合計点: ${totals[i]}`,
+                    `ユニット人数: ${counts[i]}`
                   ];
                 }
               }
