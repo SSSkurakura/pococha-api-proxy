@@ -107,9 +107,9 @@
     <div class="header">
       <h1>ユニットオリジナル曲イベント</h1>
       <h2>ランキング画面</h2>
-      <div class="period">2025/03/19 12:00 ～ 2025/03/23 23:59</div>
+      <div class="period">開催期間：2025/03/19 12:00 ～ 2025/03/23 23:59</div>
       <div class="notice">
-        ※本ページは、最終結果とは異なる可能性がございます。予めご了承ください。
+        ※本ページは、速報値です。最終結果は、Pococha公式noteで改めて発表します。予めご了承ください。
       </div>
     </div>
 
@@ -160,9 +160,9 @@
           <div class="rank-block">${idx + 1}</div>
           <div class="info-block">
             <div class="name-line">${it.name}</div>
-            <div class="score-line">得点：${it.weighted.toLocaleString()} pt</div>
+            <div class="score-line">${it.weighted.toLocaleString()} pt</div>
             <div class="detail-line">
-              合計：${it.total.toLocaleString()} pt / ${it.count}名（${it.factor}倍）
+              ※詳細：${it.total.toLocaleString()} pt / ${it.count}名（${it.factor}倍）
             </div>
           </div>`;
         ul.appendChild(li);
