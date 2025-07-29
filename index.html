@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>ユニットオリジナル曲 -ランキング画面-</title>
   <style>
     body {
@@ -9,6 +9,8 @@
       margin: 0;
       background: #fafafa;
     }
+
+    /* ヘッダー */
     .header {
       background: #000;
       color: #fff;
@@ -32,6 +34,7 @@
       border-radius: 4px;
     }
 
+    /* ランキングリスト */
     .ranking-list {
       list-style: none;
       padding: 0;
@@ -40,7 +43,7 @@
     }
     .ranking-list li {
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       background: #fff;
       margin-bottom: 12px;
       border-radius: 6px;
@@ -48,6 +51,7 @@
       cursor: pointer;
       overflow: hidden;
     }
+    /* 順位 */
     .rank-block {
       background: #000;
       color: #fff;
@@ -57,25 +61,60 @@
       padding: 16px 0;
       flex-shrink: 0;
     }
+    /* チーム名 */
     .name-block {
       flex: 1;
-      padding: 0 16px;
+      padding: 16px;
       font-size: 1.4rem;
       font-weight: bold;
     }
+    /* スコア（縦積み）*/
     .score-block {
       flex-shrink: 0;
-      padding: 0 16px;
-      text-align: right;
+      padding: 16px;
       min-width: 160px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
     }
-    .avg-line {
+    .score-block .avg-line {
       font-size: 1.3rem;
     }
-    .detail-line {
+    .score-block .detail-line {
       font-size: 1.1rem;
       color: #666;
       margin-top: 4px;
+    }
+
+    /* スマホ向け調整 */
+    @media screen and (max-width: 600px) {
+      .header h1 {
+        font-size: 2.2rem;
+      }
+      .header .period {
+        font-size: 1.2rem;
+      }
+      .header .notice {
+        font-size: 1.05rem;
+      }
+      .rank-block {
+        font-size: 1.6rem;
+        width: 70px;
+      }
+      .name-block {
+        font-size: 1.6rem;
+        padding: 12px;
+      }
+      .score-block {
+        padding: 12px;
+        min-width: 120px;
+      }
+      .score-block .avg-line {
+        font-size: 1.4rem;
+      }
+      .score-block .detail-line {
+        font-size: 1rem;
+      }
     }
   </style>
 </head>
@@ -83,67 +122,4 @@
 
   <div class="header">
     <h1>ユニットオリジナル曲 -ランキング画面-</h1>
-    <div class="period">2025/03/19 12:00 ～ 2025/03/23 23:59</div>
-    <div class="notice">
-      ※本ページは、最終結果とは異なる可能性がございます。予めご了承ください。
-    </div>
-  </div>
-
-  <ul class="ranking-list" id="ranking-list">
-    <!-- JS がここに <li> を追加 -->
-  </ul>
-
-  <script>
-    const eventIds = [
-      '01JPGY77RX9AHKM3TTQ12FE6JT',
-      '01JT33KH7XY1RY91WS9TMFF1TX',
-      // ...追加ID
-    ];
-
-    Promise.all(eventIds.map(id =>
-      fetch(`/api/proxy?eventId=${id}`)
-        .then(res => res.ok ? res.json() : Promise.reject(res.status))
-    ))
-    .then(results => {
-      const items = results.map((json, i) => {
-        const scores = json.rank_tabs.flatMap(tab => tab.ranks.map(r => r.score));
-        const total  = scores.reduce((a,b) => a + b, 0);
-        const count  = scores.length || 1;
-        const avg    = Math.round(total / count);
-        return {
-          eventId: eventIds[i],
-          name:    json.event.name,
-          total, count, avg
-        };
-      });
-      items.sort((a,b) => b.avg - a.avg);
-
-      const ul = document.getElementById('ranking-list');
-      items.forEach((it, idx) => {
-        const li = document.createElement('li');
-        li.onclick = () => {
-          window.open(
-            `https://www.pococha.com/ja-jp/liver-score-event/${it.eventId}/ranking`,
-            '_blank'
-          );
-        };
-        li.innerHTML = `
-          <div class="rank-block">${idx + 1}</div>
-          <div class="name-block">${it.name}</div>
-          <div class="score-block">
-            <div class="avg-line">平均：${it.avg.toLocaleString()} pt</div>
-            <div class="detail-line">合計：${it.total.toLocaleString()} pt / ${it.count}名</div>
-          </div>
-        `;
-        ul.appendChild(li);
-      });
-    })
-    .catch(err => {
-      console.error(err);
-      document.getElementById('ranking-list').innerHTML =
-        '<li style="color:red;padding:16px;">データ取得エラー</li>';
-    });
-  </script>
-
-</body>
-</html>
+    <div class="period">2025/03/19 12:0
