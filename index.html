@@ -1,58 +1,66 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>ユニットオリジナル曲 -ランキング画面-</title>
   <style>
     body {
       font-family: sans-serif;
       margin: 0;
-      background: #fafafa;
+      background: #f0f2f5;
+      color: #333;
     }
-    /* ヘッダー */
+    /*── コンテナ ──*/
+    .container {
+      max-width: 480px;       /* カード幅の上限 */
+      margin: 0 auto;         /* 画面中央寄せ */
+      padding: 16px 8px;      /* 両サイドに余白 */
+    }
+
+    /*── ヘッダー ──*/
     .header {
       background: #000;
       color: #fff;
       text-align: center;
       padding: 24px 16px;
+      border-radius: 8px;
     }
     .header h1 {
       margin: 0 0 8px;
-      font-size: 2rem;
+      font-size: 1.8rem;
+      line-height: 1.2;
     }
     .header .period {
-      font-size: 1.1rem;
+      font-size: 1rem;
       opacity: 0.8;
     }
     .header .notice {
       background: #333;
-      color: #fff;
-      padding: 8px;
       margin-top: 12px;
-      font-size: 1rem;
+      padding: 8px;
+      font-size: 0.9rem;
       border-radius: 4px;
+      line-height: 1.3;
     }
 
-    /* ランキングリスト */
+    /*── ランキングリスト ──*/
     .ranking-list {
       list-style: none;
       padding: 0;
-      max-width: 800px;
-      margin: 24px auto;
+      margin: 24px 0;
     }
     .ranking-list li {
       display: grid;
-      grid-template-columns: 60px 1fr;
-      align-items: flex-start;
+      grid-template-columns: 56px 1fr;
       background: #fff;
-      margin-bottom: 12px;
-      border-radius: 6px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-      cursor: pointer;
+      margin-bottom: 16px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
       overflow: hidden;
+      cursor: pointer;
     }
-    /* 左：順位ブロック */
+    /* 順位 */
     .rank-block {
       background: #000;
       color: #fff;
@@ -60,46 +68,51 @@
       font-size: 1.4rem;
       padding: 16px 0;
     }
-    /* 右：情報ブロック */
+    /* 情報 */
     .info-block {
       padding: 16px;
     }
     .name-line {
-      font-size: 1.4rem;
+      font-size: 1.3rem;
       font-weight: bold;
       margin-bottom: 8px;
+      line-height: 1.2;
     }
     .avg-line {
-      font-size: 1.3rem;
+      font-size: 1.2rem;
       margin-bottom: 6px;
     }
     .detail-line {
-      font-size: 1.1rem;
-      color: #666; /* 目立ちにくいグレー */
+      font-size: 1rem;
+      color: #888;    /* 目立たないグレー */
     }
 
-    /* モバイルでも同じ左右2カラム、文字サイズ大きめ */
-    @media screen and (max-width: 600px) {
-      .rank-block { font-size: 1.6rem; }
-      .name-line { font-size: 1.6rem; }
-      .avg-line { font-size: 1.4rem; }
-      .detail-line { font-size: 1.1rem; }
+    /*── モバイル調整 ──*/
+    @media screen and (max-width: 400px) {
+      .header h1 { font-size: 1.6rem; }
+      .header .period { font-size: 0.95rem; }
+      .header .notice { font-size: 0.85rem; }
+      .rank-block { font-size: 1.2rem; padding: 12px 0; }
+      .name-line { font-size: 1.2rem; }
+      .avg-line { font-size: 1.1rem; }
+      .detail-line { font-size: 0.95rem; }
     }
   </style>
 </head>
 <body>
-
-  <div class="header">
-    <h1>ユニットオリジナル曲 -ランキング画面-</h1>
-    <div class="period">2025/03/19 12:00 ～ 2025/03/23 23:59</div>
-    <div class="notice">
-      ※本ページは、最終結果とは異なる可能性がございます。予めご了承ください。
+  <div class="container">
+    <div class="header">
+      <h1>ユニットオリジナル曲 -ランキング画面-</h1>
+      <div class="period">2025/03/19 12:00 ～ 2025/03/23 23:59</div>
+      <div class="notice">
+        ※本ページは、最終結果とは異なる可能性がございます。予めご了承ください。
+      </div>
     </div>
-  </div>
 
-  <ul class="ranking-list" id="ranking-list">
-    <!-- JavaScript がここに <li> を追加します -->
-  </ul>
+    <ul class="ranking-list" id="ranking-list">
+      <!-- JavaScript で描画 -->
+    </ul>
+  </div>
 
   <script>
     const eventIds = [
@@ -114,47 +127,38 @@
       )
     )
     .then(results => {
-      // 各イベントを集計
       const items = results.map((json, i) => {
-        const scores = json.rank_tabs.flatMap(tab =>
-          tab.ranks.map(r => r.score)
-        );
-        const total = scores.reduce((a, b) => a + b, 0);
+        const scores = json.rank_tabs.flatMap(tab => tab.ranks.map(r => r.score));
+        const total = scores.reduce((a,b) => a + b, 0);
         const count = scores.length || 1;
-        const avg   = Math.round(total / count);
-        return {
-          eventId: eventIds[i],
-          name:    json.event.name,
-          total, count, avg
-        };
+        const avg = Math.round(total / count);
+        return { eventId: eventIds[i], name: json.event.name, total, count, avg };
       });
-      // 平均点で降順ソート
-      items.sort((a, b) => b.avg - a.avg);
+      items.sort((a,b) => b.avg - a.avg);
 
       const ul = document.getElementById('ranking-list');
       items.forEach((it, idx) => {
         const li = document.createElement('li');
-        li.onclick = () => {
-          const url = `https://www.pococha.com/ja-jp/liver-score-event/${it.eventId}/ranking`;
-          window.open(url, '_blank');
-        };
+        li.onclick = () =>
+          window.open(
+            `https://www.pococha.com/ja-jp/liver-score-event/${it.eventId}/ranking`,
+            '_blank'
+          );
         li.innerHTML = `
           <div class="rank-block">${idx + 1}</div>
           <div class="info-block">
             <div class="name-line">${it.name}</div>
             <div class="avg-line">平均：${it.avg.toLocaleString()} pt</div>
             <div class="detail-line">合計：${it.total.toLocaleString()} pt / ${it.count}名</div>
-          </div>
-        `;
+          </div>`;
         ul.appendChild(li);
       });
     })
     .catch(err => {
       console.error(err);
       document.getElementById('ranking-list').innerHTML =
-        '<li style="color:red;padding:16px;">データ取得エラー</li>';
+        '<li style="padding:16px; color:red;">データ取得エラー</li>';
     });
   </script>
-
 </body>
 </html>
