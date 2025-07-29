@@ -9,72 +9,56 @@
       margin: 0;
       background: #fafafa;
     }
-
-    /* ヘッダー */
     .header {
       background: #000;
       color: #fff;
       text-align: center;
       padding: 24px 16px;
     }
-    .header h1 {
-      margin: 0 0 8px;
-      font-size: 2rem;
-    }
-    .header .period {
-      font-size: 1.1rem;
-      opacity: 0.8;
-    }
+    .header h1 { margin:0 0 8px; font-size:2rem; }
+    .header .period { font-size:1.1rem; opacity:.8; }
     .header .notice {
-      background: #333;
-      color: #fff;
-      padding: 8px;
-      margin-top: 12px;
-      font-size: 1rem;
-      border-radius: 4px;
+      background:#333; padding:8px; margin-top:12px;
+      font-size:1rem; border-radius:4px;
     }
 
     /* ランキングリスト */
     .ranking-list {
-      list-style: none;
-      max-width: 800px;
-      margin: 24px auto;
-      padding: 0;
+      list-style:none; padding:0;
+      max-width:800px; margin:24px auto;
     }
     .ranking-list li {
-      background: #fff;
-      margin-bottom: 12px;
-      padding: 16px;
-      border-radius: 6px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-      cursor: pointer;
+      display: flex;
+      align-items: flex-start;
+      background:#fff; margin-bottom:12px;
+      border-radius:6px; box-shadow:0 1px 3px rgba(0,0,0,0.1);
+      cursor:pointer; overflow:hidden;
     }
-    .ranking-list li:hover {
-      background: #f9f9f9;
+    /* 左：順位 */
+    .rank-block {
+      background:#000; color:#fff;
+      min-width:60px; text-align:center;
+      font-size:1.4rem; line-height:1.2;
+      padding:16px 8px;
     }
-    .rank-line {
-      font-size: 1.2rem;
-      font-weight: bold;
+    /* 右：情報 */
+    .info-block {
+      flex:1; padding:16px;
     }
     .name-line {
-      font-size: 1.5rem;
-      font-weight: bold;
-      margin-top: 4px;
+      font-size:1.5rem; font-weight:bold;
+      margin-bottom:6px;
     }
     .avg-line {
-      font-size: 1.3rem;
-      margin-top: 6px;
+      font-size:1.3rem; margin-bottom:4px;
     }
     .detail-line {
-      font-size: 1rem;
-      color: #666;
-      margin-top: 4px;
+      font-size:1.1rem; color:#666;
     }
   </style>
 </head>
 <body>
 
-  <!-- ヘッダー -->
   <div class="header">
     <h1>ユニットオリジナル曲 -ランキング画面-</h1>
     <div class="period">2025/03/19 12:00 ～ 2025/03/23 23:59</div>
@@ -83,51 +67,57 @@
     </div>
   </div>
 
-  <!-- ランキングリスト -->
   <ul class="ranking-list" id="ranking-list">
-    <!-- JavaScript で埋め込み -->
+    <!-- JSで埋め込み -->
   </ul>
 
   <script>
+    // ここに複数の eventId を追加しても OK
     const eventIds = [
       '01JPGY77RX9AHKM3TTQ12FE6JT',
       '01JT33KH7XY1RY91WS9TMFF1TX',
-      // 他の eventId を追加…
+      //…
     ];
 
+    // 全てのフェッチを並列実行
     Promise.all(eventIds.map(id =>
       fetch(`/api/proxy?eventId=${id}`)
         .then(r => r.ok ? r.json() : Promise.reject(r.status))
     ))
     .then(results => {
+      // 結果ごとに集計データを作成
       const items = results.map((json, i) => {
-        const scores = json.rank_tabs.flatMap(tab =>
-          tab.ranks.map(r => r.score)
-        );
-        const total = scores.reduce((a,b) => a + b, 0);
-        const count = scores.length || 1;
-        const avg   = Math.round(total / count);
+        const scores = json.rank_tabs.flatMap(tab => tab.ranks.map(r => r.score));
+        const total  = scores.reduce((a,b) => a + b, 0);
+        const count  = scores.length || 1;
+        const avg    = Math.round(total / count);
         return {
-          eventId: eventIds[i],
-          name: json.event.name,
+          eventId:   eventIds[i],
+          name:      json.event.name,
           total, count, avg
         };
       });
-      // 平均点順にソート
+
+      // 平均点で降順ソート
       items.sort((a,b) => b.avg - a.avg);
 
+      // 描画
       const ul = document.getElementById('ranking-list');
-      items.forEach((item, idx) => {
+      items.forEach((it, idx) => {
         const li = document.createElement('li');
         li.onclick = () => {
-          const url = `https://www.pococha.com/ja-jp/liver-score-event/${item.eventId}/ranking`;
-          window.open(url, '_blank');
+          window.open(
+            `https://www.pococha.com/ja-jp/liver-score-event/${it.eventId}/ranking`,
+            '_blank'
+          );
         };
         li.innerHTML = `
-          <div class="rank-line">No.${idx + 1}</div>
-          <div class="name-line">${item.name}</div>
-          <div class="avg-line">平均：${item.avg.toLocaleString()} pt</div>
-          <div class="detail-line">合計：${item.total.toLocaleString()} pt / ${item.count}名</div>
+          <div class="rank-block">${idx + 1}</div>
+          <div class="info-block">
+            <div class="name-line">${it.name}</div>
+            <div class="avg-line">平均：${it.avg.toLocaleString()} pt</div>
+            <div class="detail-line">合計：${it.total.toLocaleString()} pt / ${it.count}名</div>
+          </div>
         `;
         ul.appendChild(li);
       });
@@ -135,7 +125,7 @@
     .catch(err => {
       console.error(err);
       document.getElementById('ranking-list').innerHTML =
-        '<li style="color:red; padding:16px;">データ取得エラー</li>';
+        '<li style="color:red;padding:16px;">データ取得エラー</li>';
     });
   </script>
 
