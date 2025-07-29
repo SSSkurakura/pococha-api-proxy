@@ -61,6 +61,34 @@
     .ranking-table tbody tr:hover {
       background: #f9f9f9;
     }
+  /* スマホ向けフォント大きめ調整 */
+@media screen and (max-width: 600px) {
+  body {
+    font-size: 18px;           /* ベースフォントを少し大きく */
+    padding: 0 8px;            /* 余白は狭めに */
+  }
+
+  .header h1 {
+    font-size: 2.4rem;         /* タイトルを大きく */
+    line-height: 1.2;
+  }
+  .header .period {
+    font-size: 1.2rem;         /* 日付も大きめに */
+  }
+  .header .notice {
+    font-size: 1rem;           /* 注意文言を読みやすく */
+    padding: 12px;             /* パディング増量 */
+  }
+
+  .ranking-table th,
+  .ranking-table td {
+    font-size: 1.1rem;         /* 表内テキストを大きく */
+    padding: 14px 12px;        /* セルの余白も増やす */
+  }
+  .ranking-table td.sub {
+    font-size: 0.95rem;        /* 補足情報も大きめ */
+  }
+}
   </style>
 </head>
 <body>
