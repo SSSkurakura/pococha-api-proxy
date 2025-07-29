@@ -122,4 +122,75 @@
 
   <div class="header">
     <h1>ユニットオリジナル曲 -ランキング画面-</h1>
-    <div class="period">2025/03/19 12:0
+    <div class="period">2025/03/19 12:00 ～ 2025/03/23 23:59</div>
+    <div class="notice">
+      ※本ページは、最終結果とは異なる可能性がございます。予めご了承ください。
+    </div>
+  </div>
+
+  <ul class="ranking-list" id="ranking-list">
+    <!-- JavaScript で埋め込みます -->
+  </ul>
+
+  <script>
+    const eventIds = [
+      '01JPGY77RX9AHKM3TTQ12FE6JT',
+      '01JT33KH7XY1RY91WS9TMFF1TX'
+    ];
+
+    Promise.all(
+      eventIds.map(id =>
+        fetch(`/api/proxy?eventId=${id}`)
+          .then(res => {
+            if (!res.ok) throw new Error(res.status);
+            return res.json();
+          })
+      )
+    )
+    .then(results => {
+      // 各イベントの集計データを作成
+      const items = results.map((json, i) => {
+        const scores = json.rank_tabs.flatMap(tab =>
+          tab.ranks.map(r => r.score)
+        );
+        const total = scores.reduce((a, b) => a + b, 0);
+        const count = scores.length || 1;
+        const avg = Math.round(total / count);
+        return {
+          eventId: eventIds[i],
+          name: json.event.name,
+          total,
+          count,
+          avg
+        };
+      });
+      // 平均点で降順
+      items.sort((a, b) => b.avg - a.avg);
+
+      const ul = document.getElementById('ranking-list');
+      items.forEach((it, idx) => {
+        const li = document.createElement('li');
+        li.onclick = () => {
+          const url = `https://www.pococha.com/ja-jp/liver-score-event/${it.eventId}/ranking`;
+          window.open(url, '_blank');
+        };
+        li.innerHTML = `
+          <div class="rank-block">${idx + 1}</div>
+          <div class="name-block">${it.name}</div>
+          <div class="score-block">
+            <div class="avg-line">平均：${it.avg.toLocaleString()} pt</div>
+            <div class="detail-line">合計：${it.total.toLocaleString()} pt / ${it.count}名</div>
+          </div>
+        `;
+        ul.appendChild(li);
+      });
+    })
+    .catch(err => {
+      console.error(err);
+      document.getElementById('ranking-list').innerHTML =
+        '<li style="color:red; padding:16px;">データ取得エラー</li>';
+    });
+  </script>
+
+</body>
+</html>
