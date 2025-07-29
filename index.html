@@ -8,6 +8,7 @@
       font-family: sans-serif;
       margin: 0;
       background: #fafafa;
+      font-size: 18px;           /* ベースを少し大きく */
     }
     /* ヘッダー */
     .header {
@@ -18,10 +19,10 @@
     }
     .header h1 {
       margin: 0 0 8px;
-      font-size: 1.8rem;
+      font-size: 2rem;
     }
     .header .period {
-      font-size: 1rem;
+      font-size: 1.1rem;
       opacity: 0.8;
     }
     .header .notice {
@@ -29,11 +30,11 @@
       color: #fff;
       padding: 8px;
       margin-top: 12px;
-      font-size: 0.9rem;
+      font-size: 1rem;
       border-radius: 4px;
     }
 
-    /* ランキング表 */
+    /* ランキング表（デスクトップ） */
     .ranking-table {
       width: 100%;
       max-width: 800px;
@@ -47,9 +48,11 @@
       padding: 12px 16px;
       border-bottom: 1px solid #eee;
       text-align: left;
+      font-size: 1rem;
     }
     .ranking-table th {
       background: #f0f0f0;
+      font-size: 1.1rem;
     }
     .ranking-table td.sub {
       font-size: 0.85rem;
@@ -62,21 +65,16 @@
       background: #f9f9f9;
     }
 
-    /* スマホ縦置き用 */
-    @media screen and (max-width: 600px) {
-      /* ヘッダーのフォントを少し大きく */
-      .header h1 { font-size: 2.2rem; }
-      .header .period { font-size: 1.2rem; }
-      .header .notice { font-size: 1.05rem; }
-
-      /* ヘッダー・順位列を非表示 */
+    /* スマホ向け縦表示 */
+    @media screen and (max-width: 768px) {
+      /* 見出し・順位列を隠す */
       .ranking-table thead { display: none; }
-      .ranking-table th:nth-child(1),
-      .ranking-table td:nth-child(1) {
+      .ranking-table th.rank,
+      .ranking-table td.rank {
         display: none;
       }
 
-      /* テーブル→ブロックカード化 */
+      /* テーブル全体をブロックに */
       .ranking-table,
       .ranking-table tbody,
       .ranking-table tr,
@@ -86,24 +84,26 @@
       }
       .ranking-table tr {
         margin-bottom: 16px;
-        border-bottom: 1px solid #eee;
+        border-bottom: 1px solid #ddd;
+        padding: 8px 0;
       }
       .ranking-table td {
-        padding: 8px 16px;
+        padding: 4px 16px;
       }
+
       /* チーム名 */
-      .ranking-table td:nth-of-type(2) {
-        font-size: 1.3rem;
+      .ranking-table td.name {
+        font-size: 1.4rem;
         font-weight: bold;
       }
       /* 平均点 */
-      .ranking-table td:nth-of-type(3) {
-        font-size: 1.2rem;
+      .ranking-table td.avg {
+        font-size: 1.3rem;
         margin-top: 4px;
       }
       /* 詳細 */
-      .ranking-table td:nth-of-type(4) {
-        font-size: 1rem;
+      .ranking-table td.detail {
+        font-size: 1.1rem;
         color: #666;
         margin-top: 2px;
       }
@@ -125,10 +125,10 @@
   <table class="ranking-table">
     <thead>
       <tr>
-        <th>順位</th>
-        <th>チーム名</th>
-        <th>平均点</th>
-        <th>詳細（合計点 / 人数）</th>
+        <th class="rank">順位</th>
+        <th class="name">チーム名</th>
+        <th class="avg">平均点</th>
+        <th class="detail">詳細（合計点 / 人数）</th>
       </tr>
     </thead>
     <tbody id="ranking-body">
@@ -139,51 +139,8 @@
   <script>
     const eventIds = [
       '01JPGY77RX9AHKM3TTQ12FE6JT',
-      // 他の eventId をカンマ区切りで追加
+      // 他の eventId をここに追加
     ];
 
     Promise.all(eventIds.map(id =>
-      fetch(`/api/proxy?eventId=${id}`)
-        .then(r => r.ok ? r.json() : Promise.reject(r.status))
-    ))
-    .then(results => {
-      const items = results.map((json, i) => {
-        const scores = json.rank_tabs.flatMap(tab =>
-          tab.ranks.map(r => r.score)
-        );
-        const total = scores.reduce((a,b) => a + b, 0);
-        const count = scores.length || 1;
-        const avg   = Math.round(total / count);
-        return {
-          eventId: eventIds[i],
-          name: json.event.name,
-          total, count, avg
-        };
-      });
-      items.sort((a,b) => b.avg - a.avg);
-
-      const tbody = document.getElementById('ranking-body');
-      items.forEach((item, idx) => {
-        const tr = document.createElement('tr');
-        tr.onclick = () => {
-          const url = `https://www.pococha.com/ja-jp/liver-score-event/${item.eventId}/ranking`;
-          window.open(url, '_blank');
-        };
-        tr.innerHTML = `
-          <td>${idx + 1}</td>
-          <td>${item.name}</td>
-          <td>${item.avg.toLocaleString()}</td>
-          <td class="sub">${item.total.toLocaleString()} / ${item.count}</td>
-        `;
-        tbody.appendChild(tr);
-      });
-    })
-    .catch(err => {
-      console.error(err);
-      document.getElementById('ranking-body').innerHTML =
-        '<tr><td colspan="4" style="color:red;">データ取得エラー</td></tr>';
-    });
-  </script>
-
-</body>
-</html>
+      fetch(`/api/proxy?even
