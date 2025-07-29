@@ -9,7 +9,7 @@
       margin: 0;
       background: #fafafa;
     }
-    /* ヘッダー：黒背景・白文字 */
+    /* ヘッダー */
     .header {
       background: #000;
       color: #fff;
@@ -24,7 +24,6 @@
       font-size: 1rem;
       opacity: 0.8;
     }
-    /* 注意文言ブロック */
     .header .notice {
       background: #333;
       color: #fff;
@@ -33,6 +32,7 @@
       font-size: 0.9rem;
       border-radius: 4px;
     }
+
     /* ランキング表 */
     .ranking-table {
       width: 100%;
@@ -61,34 +61,53 @@
     .ranking-table tbody tr:hover {
       background: #f9f9f9;
     }
-  /* スマホ向けフォント大きめ調整 */
-@media screen and (max-width: 600px) {
-  body {
-    font-size: 18px;           /* ベースフォントを少し大きく */
-    padding: 0 8px;            /* 余白は狭めに */
-  }
 
-  .header h1 {
-    font-size: 2.4rem;         /* タイトルを大きく */
-    line-height: 1.2;
-  }
-  .header .period {
-    font-size: 1.2rem;         /* 日付も大きめに */
-  }
-  .header .notice {
-    font-size: 1rem;           /* 注意文言を読みやすく */
-    padding: 12px;             /* パディング増量 */
-  }
+    /* スマホ縦置き用 */
+    @media screen and (max-width: 600px) {
+      /* ヘッダーのフォントを少し大きく */
+      .header h1 { font-size: 2.2rem; }
+      .header .period { font-size: 1.2rem; }
+      .header .notice { font-size: 1.05rem; }
 
-  .ranking-table th,
-  .ranking-table td {
-    font-size: 1.1rem;         /* 表内テキストを大きく */
-    padding: 14px 12px;        /* セルの余白も増やす */
-  }
-  .ranking-table td.sub {
-    font-size: 0.95rem;        /* 補足情報も大きめ */
-  }
-}
+      /* ヘッダー・順位列を非表示 */
+      .ranking-table thead { display: none; }
+      .ranking-table th:nth-child(1),
+      .ranking-table td:nth-child(1) {
+        display: none;
+      }
+
+      /* テーブル→ブロックカード化 */
+      .ranking-table,
+      .ranking-table tbody,
+      .ranking-table tr,
+      .ranking-table td {
+        display: block;
+        width: 100%;
+      }
+      .ranking-table tr {
+        margin-bottom: 16px;
+        border-bottom: 1px solid #eee;
+      }
+      .ranking-table td {
+        padding: 8px 16px;
+      }
+      /* チーム名 */
+      .ranking-table td:nth-of-type(2) {
+        font-size: 1.3rem;
+        font-weight: bold;
+      }
+      /* 平均点 */
+      .ranking-table td:nth-of-type(3) {
+        font-size: 1.2rem;
+        margin-top: 4px;
+      }
+      /* 詳細 */
+      .ranking-table td:nth-of-type(4) {
+        font-size: 1rem;
+        color: #666;
+        margin-top: 2px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -96,9 +115,9 @@
   <!-- ヘッダー -->
   <div class="header">
     <h1>ユニットオリジナル曲 -ランキング画面-</h1>
-    <div class="period">イベント開催期間：2025/03/19 12:00 ～ 2025/03/23 23:59</div>
+    <div class="period">2025/03/19 12:00 ～ 2025/03/23 23:59</div>
     <div class="notice">
-      ※本ページは、速報値です。最終結果は、Pococha公式noteなどで、改めてお知らせいたします。予めご了承ください。
+      ※本ページは、最終結果とは異なる可能性がございます。予めご了承ください。
     </div>
   </div>
 
@@ -109,7 +128,7 @@
         <th>順位</th>
         <th>チーム名</th>
         <th>平均点</th>
-        <th>詳細<span style="opacity:0.6;font-size:0.9rem;">（合計点 / 人数）</span></th>
+        <th>詳細（合計点 / 人数）</th>
       </tr>
     </thead>
     <tbody id="ranking-body">
@@ -120,7 +139,6 @@
   <script>
     const eventIds = [
       '01JPGY77RX9AHKM3TTQ12FE6JT',
-      '01JT33KH7XY1RY91WS9TMFF1TX',
       // 他の eventId をカンマ区切りで追加
     ];
 
@@ -129,7 +147,6 @@
         .then(r => r.ok ? r.json() : Promise.reject(r.status))
     ))
     .then(results => {
-      // イベントごとに name, total, count, avg を計算
       const items = results.map((json, i) => {
         const scores = json.rank_tabs.flatMap(tab =>
           tab.ranks.map(r => r.score)
@@ -143,10 +160,8 @@
           total, count, avg
         };
       });
-      // 平均点で降順ソート
       items.sort((a,b) => b.avg - a.avg);
 
-      // テーブルに行を追加
       const tbody = document.getElementById('ranking-body');
       items.forEach((item, idx) => {
         const tr = document.createElement('tr');
