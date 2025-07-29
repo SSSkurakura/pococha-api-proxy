@@ -8,8 +8,8 @@
       font-family: sans-serif;
       margin: 0;
       background: #fafafa;
-      font-size: 18px;           /* ベースを少し大きく */
     }
+
     /* ヘッダー */
     .header {
       background: #000;
@@ -34,79 +34,41 @@
       border-radius: 4px;
     }
 
-    /* ランキング表（デスクトップ） */
-    .ranking-table {
-      width: 100%;
+    /* ランキングリスト */
+    .ranking-list {
+      list-style: none;
       max-width: 800px;
       margin: 24px auto;
-      border-collapse: collapse;
+      padding: 0;
+    }
+    .ranking-list li {
       background: #fff;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-    }
-    .ranking-table th,
-    .ranking-table td {
-      padding: 12px 16px;
-      border-bottom: 1px solid #eee;
-      text-align: left;
-      font-size: 1rem;
-    }
-    .ranking-table th {
-      background: #f0f0f0;
-      font-size: 1.1rem;
-    }
-    .ranking-table td.sub {
-      font-size: 0.85rem;
-      color: #666;
-    }
-    .ranking-table tbody tr {
+      margin-bottom: 12px;
+      padding: 16px;
+      border-radius: 6px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
       cursor: pointer;
     }
-    .ranking-table tbody tr:hover {
+    .ranking-list li:hover {
       background: #f9f9f9;
     }
-
-    /* スマホ向け縦表示 */
-    @media screen and (max-width: 768px) {
-      /* 見出し・順位列を隠す */
-      .ranking-table thead { display: none; }
-      .ranking-table th.rank,
-      .ranking-table td.rank {
-        display: none;
-      }
-
-      /* テーブル全体をブロックに */
-      .ranking-table,
-      .ranking-table tbody,
-      .ranking-table tr,
-      .ranking-table td {
-        display: block;
-        width: 100%;
-      }
-      .ranking-table tr {
-        margin-bottom: 16px;
-        border-bottom: 1px solid #ddd;
-        padding: 8px 0;
-      }
-      .ranking-table td {
-        padding: 4px 16px;
-      }
-
-      /* チーム名 */
-      .ranking-table td.name {
-        font-size: 1.4rem;
-        font-weight: bold;
-      }
-      /* 平均点 */
-      .ranking-table td.avg {
-        font-size: 1.3rem;
-        margin-top: 4px;
-      }
-      /* 詳細 */
-      .ranking-table td.detail {
-        font-size: 1.1rem;
-        color: #666;
-        margin-top: 2px;
-      }
+    .rank-line {
+      font-size: 1.2rem;
+      font-weight: bold;
+    }
+    .name-line {
+      font-size: 1.5rem;
+      font-weight: bold;
+      margin-top: 4px;
+    }
+    .avg-line {
+      font-size: 1.3rem;
+      margin-top: 6px;
+    }
+    .detail-line {
+      font-size: 1rem;
+      color: #666;
+      margin-top: 4px;
     }
   </style>
 </head>
@@ -121,26 +83,60 @@
     </div>
   </div>
 
-  <!-- ランキング表 -->
-  <table class="ranking-table">
-    <thead>
-      <tr>
-        <th class="rank">順位</th>
-        <th class="name">チーム名</th>
-        <th class="avg">平均点</th>
-        <th class="detail">詳細（合計点 / 人数）</th>
-      </tr>
-    </thead>
-    <tbody id="ranking-body">
-      <!-- JSで埋め込み -->
-    </tbody>
-  </table>
+  <!-- ランキングリスト -->
+  <ul class="ranking-list" id="ranking-list">
+    <!-- JavaScript で埋め込み -->
+  </ul>
 
   <script>
     const eventIds = [
       '01JPGY77RX9AHKM3TTQ12FE6JT',
-      // 他の eventId をここに追加
+      // 他の eventId を追加…
     ];
 
     Promise.all(eventIds.map(id =>
-      fetch(`/api/proxy?even
+      fetch(`/api/proxy?eventId=${id}`)
+        .then(r => r.ok ? r.json() : Promise.reject(r.status))
+    ))
+    .then(results => {
+      const items = results.map((json, i) => {
+        const scores = json.rank_tabs.flatMap(tab =>
+          tab.ranks.map(r => r.score)
+        );
+        const total = scores.reduce((a,b) => a + b, 0);
+        const count = scores.length || 1;
+        const avg   = Math.round(total / count);
+        return {
+          eventId: eventIds[i],
+          name: json.event.name,
+          total, count, avg
+        };
+      });
+      // 平均点順にソート
+      items.sort((a,b) => b.avg - a.avg);
+
+      const ul = document.getElementById('ranking-list');
+      items.forEach((item, idx) => {
+        const li = document.createElement('li');
+        li.onclick = () => {
+          const url = `https://www.pococha.com/ja-jp/liver-score-event/${item.eventId}/ranking`;
+          window.open(url, '_blank');
+        };
+        li.innerHTML = `
+          <div class="rank-line">No.${idx + 1}</div>
+          <div class="name-line">${item.name}</div>
+          <div class="avg-line">平均：${item.avg.toLocaleString()} pt</div>
+          <div class="detail-line">合計：${item.total.toLocaleString()} pt / ${item.count}名</div>
+        `;
+        ul.appendChild(li);
+      });
+    })
+    .catch(err => {
+      console.error(err);
+      document.getElementById('ranking-list').innerHTML =
+        '<li style="color:red; padding:16px;">データ取得エラー</li>';
+    });
+  </script>
+
+</body>
+</html>
