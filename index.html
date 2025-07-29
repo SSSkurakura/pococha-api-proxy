@@ -15,45 +15,67 @@
       text-align: center;
       padding: 24px 16px;
     }
-    .header h1 { margin:0 0 8px; font-size:2rem; }
-    .header .period { font-size:1.1rem; opacity:.8; }
+    .header h1 {
+      margin: 0 0 8px;
+      font-size: 2rem;
+    }
+    .header .period {
+      font-size: 1.1rem;
+      opacity: 0.8;
+    }
     .header .notice {
-      background:#333; padding:8px; margin-top:12px;
-      font-size:1rem; border-radius:4px;
+      background: #333;
+      color: #fff;
+      padding: 8px;
+      margin-top: 12px;
+      font-size: 1rem;
+      border-radius: 4px;
     }
 
-    /* ランキングリスト */
     .ranking-list {
-      list-style:none; padding:0;
-      max-width:800px; margin:24px auto;
+      list-style: none;
+      padding: 0;
+      max-width: 800px;
+      margin: 24px auto;
     }
     .ranking-list li {
       display: flex;
-      align-items: flex-start;
-      background:#fff; margin-bottom:12px;
-      border-radius:6px; box-shadow:0 1px 3px rgba(0,0,0,0.1);
-      cursor:pointer; overflow:hidden;
+      align-items: center;
+      background: #fff;
+      margin-bottom: 12px;
+      border-radius: 6px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      cursor: pointer;
+      overflow: hidden;
     }
-    /* 左：順位 */
     .rank-block {
-      background:#000; color:#fff;
-      min-width:60px; text-align:center;
-      font-size:1.4rem; line-height:1.2;
-      padding:16px 8px;
+      background: #000;
+      color: #fff;
+      width: 60px;
+      text-align: center;
+      font-size: 1.4rem;
+      padding: 16px 0;
+      flex-shrink: 0;
     }
-    /* 右：情報 */
-    .info-block {
-      flex:1; padding:16px;
+    .name-block {
+      flex: 1;
+      padding: 0 16px;
+      font-size: 1.4rem;
+      font-weight: bold;
     }
-    .name-line {
-      font-size:1.5rem; font-weight:bold;
-      margin-bottom:6px;
+    .score-block {
+      flex-shrink: 0;
+      padding: 0 16px;
+      text-align: right;
+      min-width: 160px;
     }
     .avg-line {
-      font-size:1.3rem; margin-bottom:4px;
+      font-size: 1.3rem;
     }
     .detail-line {
-      font-size:1.1rem; color:#666;
+      font-size: 1.1rem;
+      color: #666;
+      margin-top: 4px;
     }
   </style>
 </head>
@@ -68,40 +90,34 @@
   </div>
 
   <ul class="ranking-list" id="ranking-list">
-    <!-- JSで埋め込み -->
+    <!-- JS がここに <li> を追加 -->
   </ul>
 
   <script>
-    // ここに複数の eventId を追加しても OK
     const eventIds = [
       '01JPGY77RX9AHKM3TTQ12FE6JT',
       '01JT33KH7XY1RY91WS9TMFF1TX',
-      //…
+      // ...追加ID
     ];
 
-    // 全てのフェッチを並列実行
     Promise.all(eventIds.map(id =>
       fetch(`/api/proxy?eventId=${id}`)
-        .then(r => r.ok ? r.json() : Promise.reject(r.status))
+        .then(res => res.ok ? res.json() : Promise.reject(res.status))
     ))
     .then(results => {
-      // 結果ごとに集計データを作成
       const items = results.map((json, i) => {
         const scores = json.rank_tabs.flatMap(tab => tab.ranks.map(r => r.score));
         const total  = scores.reduce((a,b) => a + b, 0);
         const count  = scores.length || 1;
         const avg    = Math.round(total / count);
         return {
-          eventId:   eventIds[i],
-          name:      json.event.name,
+          eventId: eventIds[i],
+          name:    json.event.name,
           total, count, avg
         };
       });
-
-      // 平均点で降順ソート
       items.sort((a,b) => b.avg - a.avg);
 
-      // 描画
       const ul = document.getElementById('ranking-list');
       items.forEach((it, idx) => {
         const li = document.createElement('li');
@@ -113,8 +129,8 @@
         };
         li.innerHTML = `
           <div class="rank-block">${idx + 1}</div>
-          <div class="info-block">
-            <div class="name-line">${it.name}</div>
+          <div class="name-block">${it.name}</div>
+          <div class="score-block">
             <div class="avg-line">平均：${it.avg.toLocaleString()} pt</div>
             <div class="detail-line">合計：${it.total.toLocaleString()} pt / ${it.count}名</div>
           </div>
