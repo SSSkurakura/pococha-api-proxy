@@ -1,7 +1,8 @@
 <!DOCTYPE html>
-<html>
+<html lang="ja">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ユニットオリジナル曲 -ランキング画面-</title>
   <style>
     body {
@@ -9,7 +10,6 @@
       margin: 0;
       background: #fafafa;
     }
-
     /* ヘッダー */
     .header {
       background: #000;
@@ -42,7 +42,8 @@
       margin: 24px auto;
     }
     .ranking-list li {
-      display: flex;
+      display: grid;
+      grid-template-columns: 60px 1fr;
       align-items: flex-start;
       background: #fff;
       margin-bottom: 12px;
@@ -51,70 +52,38 @@
       cursor: pointer;
       overflow: hidden;
     }
-    /* 順位 */
+    /* 左：順位ブロック */
     .rank-block {
       background: #000;
       color: #fff;
-      width: 60px;
       text-align: center;
       font-size: 1.4rem;
       padding: 16px 0;
-      flex-shrink: 0;
     }
-    /* チーム名 */
-    .name-block {
-      flex: 1;
+    /* 右：情報ブロック */
+    .info-block {
       padding: 16px;
+    }
+    .name-line {
       font-size: 1.4rem;
       font-weight: bold;
+      margin-bottom: 8px;
     }
-    /* スコア（縦積み）*/
-    .score-block {
-      flex-shrink: 0;
-      padding: 16px;
-      min-width: 160px;
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-    }
-    .score-block .avg-line {
+    .avg-line {
       font-size: 1.3rem;
+      margin-bottom: 6px;
     }
-    .score-block .detail-line {
+    .detail-line {
       font-size: 1.1rem;
-      color: #666;
-      margin-top: 4px;
+      color: #666; /* 目立ちにくいグレー */
     }
 
-    /* スマホ向け調整 */
+    /* モバイルでも同じ左右2カラム、文字サイズ大きめ */
     @media screen and (max-width: 600px) {
-      .header h1 {
-        font-size: 2.2rem;
-      }
-      .header .period {
-        font-size: 1.2rem;
-      }
-      .header .notice {
-        font-size: 1.05rem;
-      }
-      .rank-block {
-        font-size: 1.6rem;
-        width: 70px;
-      }
-      .name-block {
-        font-size: 1.6rem;
-        padding: 12px;
-      }
-      .score-block {
-        padding: 12px;
-        min-width: 120px;
-      }
-      .score-block .avg-line {
-        font-size: 1.4rem;
-      }
-      .score-block .detail-line {
-        font-size: 1rem;
-      }
+      .rank-block { font-size: 1.6rem; }
+      .name-line { font-size: 1.6rem; }
+      .avg-line { font-size: 1.4rem; }
+      .detail-line { font-size: 1.1rem; }
     }
   </style>
 </head>
@@ -122,14 +91,14 @@
 
   <div class="header">
     <h1>ユニットオリジナル曲 -ランキング画面-</h1>
-    <div class="period">開催期間：2025/03/19 12:00 ～ 2025/03/23 23:59</div>
+    <div class="period">2025/03/19 12:00 ～ 2025/03/23 23:59</div>
     <div class="notice">
       ※本ページは、最終結果とは異なる可能性がございます。予めご了承ください。
     </div>
   </div>
 
   <ul class="ranking-list" id="ranking-list">
-    <!-- JavaScript で埋め込みます -->
+    <!-- JavaScript がここに <li> を追加します -->
   </ul>
 
   <script>
@@ -141,30 +110,25 @@
     Promise.all(
       eventIds.map(id =>
         fetch(`/api/proxy?eventId=${id}`)
-          .then(res => {
-            if (!res.ok) throw new Error(res.status);
-            return res.json();
-          })
+          .then(res => res.ok ? res.json() : Promise.reject(res.status))
       )
     )
     .then(results => {
-      // 各イベントの集計データを作成
+      // 各イベントを集計
       const items = results.map((json, i) => {
         const scores = json.rank_tabs.flatMap(tab =>
           tab.ranks.map(r => r.score)
         );
         const total = scores.reduce((a, b) => a + b, 0);
         const count = scores.length || 1;
-        const avg = Math.round(total / count);
+        const avg   = Math.round(total / count);
         return {
           eventId: eventIds[i],
-          name: json.event.name,
-          total,
-          count,
-          avg
+          name:    json.event.name,
+          total, count, avg
         };
       });
-      // 平均点で降順
+      // 平均点で降順ソート
       items.sort((a, b) => b.avg - a.avg);
 
       const ul = document.getElementById('ranking-list');
@@ -176,10 +140,10 @@
         };
         li.innerHTML = `
           <div class="rank-block">${idx + 1}</div>
-          <div class="name-block">${it.name}</div>
-          <div class="score-block">
-            <div class="avg-line">平均：${it.avg.toLocaleString()} pt</div>
-            <div class="detail-line">合計：${it.total.toLocaleString()} pt / ${it.count}名</div>
+          <div class="info-block">
+            <div class="name-line">${it.name}</div>
+            <div class="avg-line">平均：${it.avg.toLocaleString()} pt</div>
+            <div class="detail-line">合計：${it.total.toLocaleString()} pt / ${it.count}名</div>
           </div>
         `;
         ul.appendChild(li);
@@ -188,7 +152,7 @@
     .catch(err => {
       console.error(err);
       document.getElementById('ranking-list').innerHTML =
-        '<li style="color:red; padding:16px;">データ取得エラー</li>';
+        '<li style="color:red;padding:16px;">データ取得エラー</li>';
     });
   </script>
 
