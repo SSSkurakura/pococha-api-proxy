@@ -1,10 +1,9 @@
 <!DOCTYPE html>
-
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>ユニットオリジナル曲 -ランキング画面-</title>
+  <title>ユニットオリジナル曲イベント - ランキング画面</title>
   <style>
     body {
       font-family: sans-serif;
@@ -12,14 +11,12 @@
       background: #f0f2f5;
       color: #333;
     }
-    /*── コンテナ ──*/
     .container {
-      max-width: 480px;       /* カード幅の上限 */
-      margin: 0 auto;         /* 画面中央寄せ */
-      padding: 16px 8px;      /* 両サイドに余白 */
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 16px 8px;
     }
-
-    /*── ヘッダー ──*/
+    /* ── ヘッダー ── */
     .header {
       background: #000;
       color: #fff;
@@ -28,9 +25,15 @@
       border-radius: 8px;
     }
     .header h1 {
-      margin: 0 0 8px;
+      margin: 0;
       font-size: 1.8rem;
       line-height: 1.2;
+    }
+    .header h2 {
+      margin: 8px 0;
+      font-size: 1.4rem;
+      font-weight: normal;
+      opacity: 0.9;
     }
     .header .period {
       font-size: 1rem;
@@ -44,8 +47,7 @@
       border-radius: 4px;
       line-height: 1.3;
     }
-
-    /*── ランキングリスト ──*/
+    /* ── ランキングリスト ── */
     .ranking-list {
       list-style: none;
       padding: 0;
@@ -61,7 +63,7 @@
       overflow: hidden;
       cursor: pointer;
     }
-    /* 順位 */
+    /* 左：順位 */
     .rank-block {
       background: #000;
       color: #fff;
@@ -69,7 +71,7 @@
       font-size: 1.4rem;
       padding: 16px 0;
     }
-    /* 情報 */
+    /* 右：情報 */
     .info-block {
       padding: 16px;
     }
@@ -79,23 +81,23 @@
       margin-bottom: 8px;
       line-height: 1.2;
     }
-    .avg-line {
+    .score-line {
       font-size: 1.2rem;
       margin-bottom: 6px;
     }
     .detail-line {
       font-size: 1rem;
-      color: #888;    /* 目立たないグレー */
+      color: #888; /* 目立たないグレー */
     }
-
-    /*── モバイル調整 ──*/
+    /* ── モバイル調整 ── */
     @media screen and (max-width: 400px) {
       .header h1 { font-size: 1.6rem; }
+      .header h2 { font-size: 1.2rem; }
       .header .period { font-size: 0.95rem; }
       .header .notice { font-size: 0.85rem; }
       .rank-block { font-size: 1.2rem; padding: 12px 0; }
       .name-line { font-size: 1.2rem; }
-      .avg-line { font-size: 1.1rem; }
+      .score-line { font-size: 1.1rem; }
       .detail-line { font-size: 0.95rem; }
     }
   </style>
@@ -103,7 +105,8 @@
 <body>
   <div class="container">
     <div class="header">
-      <h1>ユニットオリジナル曲 -ランキング画面-</h1>
+      <h1>ユニットオリジナル曲イベント</h1>
+      <h2>ランキング画面</h2>
       <div class="period">2025/03/19 12:00 ～ 2025/03/23 23:59</div>
       <div class="notice">
         ※本ページは、最終結果とは異なる可能性がございます。予めご了承ください。
@@ -111,7 +114,7 @@
     </div>
 
     <ul class="ranking-list" id="ranking-list">
-      <!-- JavaScript で描画 -->
+      <!-- JSで埋め込み -->
     </ul>
   </div>
 
@@ -130,27 +133,37 @@
     .then(results => {
       const items = results.map((json, i) => {
         const scores = json.rank_tabs.flatMap(tab => tab.ranks.map(r => r.score));
-        const total = scores.reduce((a,b) => a + b, 0);
-        const count = scores.length || 1;
-        const avg = Math.round(total / count);
-        return { eventId: eventIds[i], name: json.event.name, total, count, avg };
+        const total  = scores.reduce((a,b) => a + b, 0);
+        const count  = scores.length || 1;
+        // 2人なら3倍、3人なら2倍、それ以外は1倍
+        const factor = count === 2 ? 3 : count === 3 ? 2 : 1;
+        const weighted = total * factor;
+        return {
+          eventId:  eventIds[i],
+          name:     json.event.name,
+          total, count, factor, weighted
+        };
       });
-      items.sort((a,b) => b.avg - a.avg);
+      // weighted (重み付き総合点) で降順ソート
+      items.sort((a,b) => b.weighted - a.weighted);
 
       const ul = document.getElementById('ranking-list');
       items.forEach((it, idx) => {
         const li = document.createElement('li');
-        li.onclick = () =>
+        li.onclick = () => {
           window.open(
             `https://www.pococha.com/ja-jp/liver-score-event/${it.eventId}/ranking`,
             '_blank'
           );
+        };
         li.innerHTML = `
           <div class="rank-block">${idx + 1}</div>
           <div class="info-block">
             <div class="name-line">${it.name}</div>
-            <div class="avg-line">平均：${it.avg.toLocaleString()} pt</div>
-            <div class="detail-line">合計：${it.total.toLocaleString()} pt / ${it.count}名</div>
+            <div class="score-line">得点：${it.weighted.toLocaleString()} pt</div>
+            <div class="detail-line">
+              合計：${it.total.toLocaleString()} pt / ${it.count}名（${it.factor}倍）
+            </div>
           </div>`;
         ul.appendChild(li);
       });
