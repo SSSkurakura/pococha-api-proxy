@@ -3,133 +3,126 @@
 <head>
   <meta charset="UTF-8">
   <title>ユニットオリジナル曲 -ランキング画面-</title>
-  <!-- Chart.js CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body {
       font-family: sans-serif;
-      padding: 16px;
-      max-width: 800px;
-      margin: auto;
+      padding: 0;
+      margin: 0;
+      background: #fafafa;
     }
-    h1 {
-      margin-bottom: 16px;
-      font-size: 1.5rem;
+
+    /* ─── ヘッダー ─── */
+    .page-header {
+      /* background-image: url('背景画像のパス.jpg'); */
+      background-size: cover;
+      background-position: center;
+      color: #fff;
+      text-align: center;
+      padding: 40px 20px;
     }
-    #intro {
-      margin-bottom: 24px;
-      padding: 16px;
-      background: #f9f9f9;
-      border-radius: 6px;
-      font-size: 0.95rem;
-      line-height: 1.5;
+    .page-header h1 {
+      margin: 0;
+      font-size: 2rem;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.5);
     }
-    /* 追加：グラフを包むコンテナ */
-    .chart-container {
-      max-height: 400px;    /* 高さ上限 */
-      overflow-y: auto;     /* はみ出したら縦スクロール */
-      margin-bottom: 24px;
+    .page-header .period {
+      margin-top: 8px;
+      font-size: 1rem;
+      opacity: 0.8;
     }
-    /* canvas 自体は幅100% */
-    #barChart {
+
+    /* ─── テーブル ─── */
+    .ranking-table {
       width: 100%;
-      height: auto;
+      max-width: 800px;
+      margin: 24px auto;
+      border-collapse: collapse;
+      background: #fff;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    .ranking-table th,
+    .ranking-table td {
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 1px solid #eee;
+    }
+    .ranking-table th {
+      background: #f0f0f0;
+      font-weight: bold;
+    }
+    .ranking-table td.sub {
+      font-size: 0.85rem;
+      color: #666;
+    }
+    .ranking-table tbody tr {
+      cursor: pointer;
+    }
+    .ranking-table tbody tr:hover {
+      background: #f9f9f9;
     }
   </style>
 </head>
 <body>
-  <h1>ユニットオリジナル曲 -ランキング画面-</h1>
-  <section id="intro">
-    ここでは、「ユニットオリジナル曲イベント」に参加した各グループの応援ポイントの平均得点を比較して、表示しています。<br>
-    ※本ページは、最終結果とは異なる可能性がございますので、事前にご了承ください。
-  </section>
 
-  <!-- ここを div.chart-container でラップ -->
-  <div class="chart-container">
-    <canvas id="barChart"></canvas>
+  <!-- ヘッダー：タイトル＋開催期間 -->
+  <div class="page-header">
+    <h1>ユニットオリジナル曲 -ランキング画面-</h1>
+    <div class="period">2025/03/19 12:00 ～ 2025/03/23 23:59</div>
   </div>
+
+  <!-- ランキング表 -->
+  <table class="ranking-table">
+    <thead>
+      <tr>
+        <th>チーム名</th>
+        <th>平均点</th>
+        <th>詳細<span style="opacity:0.6;font-size:0.9rem;"> (合計点 / 人数)</span></th>
+      </tr>
+    </thead>
+    <tbody id="ranking-body">
+      <!-- JavaScript で埋め込み -->
+    </tbody>
+  </table>
 
   <script>
     const eventIds = [
       '01JPGY77RX9AHKM3TTQ12FE6JT',
-      '01JPGY77RX9AHKM3TTQ12FE6JT',
-      // 他の eventId をカンマ区切りで追加
+      /* 他の eventId をここに追加 */
     ];
 
-    let totals = [], counts = [];
-
-    const fetches = eventIds.map(id =>
+    // fetch & table 作成
+    Promise.all(eventIds.map(id =>
       fetch(`/api/proxy?eventId=${id}`)
-        .then(res => {
-          if (!res.ok) throw new Error(`proxy エラー: ${res.status}`);
-          return res.json();
-        })
-    );
-
-    Promise.all(fetches)
-      .then(results => {
-        const labels = [], averages = [];
-
-        results.forEach(json => {
-          labels.push(json.event.name);
-          const scores = json.rank_tabs.flatMap(tab =>
-            tab.ranks.map(r => r.score)
-          );
-          const total = scores.reduce((s, x) => s + x, 0);
-          const count = scores.length || 1;
-          totals.push(total);
-          counts.push(count);
-          averages.push(Math.round(total / count));
-        });
-
-        drawChart(labels, averages);
-      })
-      .catch(err => {
-        document.body.insertAdjacentHTML(
-          'beforeend',
-          '<p style="color:red;">データ取得中にエラーが発生しました。</p>'
+        .then(r => r.ok ? r.json() : Promise.reject(r.status))
+    ))
+    .then(results => {
+      const tbody = document.getElementById('ranking-body');
+      results.forEach(json => {
+        const { name, url } = json.event;
+        // スコア配列を flatMap で取得
+        const scores = json.rank_tabs.flatMap(tab =>
+          tab.ranks.map(r => r.score)
         );
-        console.error(err);
-      });
+        const total = scores.reduce((a,b) => a + b, 0);
+        const count = scores.length || 1;
+        const avg   = Math.round(total / count);
 
-    function drawChart(labels, data) {
-      const ctx = document.getElementById('barChart').getContext('2d');
-      new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels: labels,
-          datasets: [{
-            label: '平均得点',
-            data: data,
-            barThickness: 20
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          indexAxis: 'y',
-          scales: {
-            x: { beginAtZero: true, ticks: { font: { size: 14 } } },
-            y: { ticks: { font: { size: 14 } } }
-          },
-          plugins: {
-            legend: { display: false },
-            tooltip: {
-              callbacks: {
-                label: ctx => {
-                  const i = ctx.dataIndex;
-                  return [
-                    `平均点: ${ctx.formattedValue}`,
-                    `合計点: ${totals[i].toLocaleString()}`, 
-                    `ユニット人数: ${counts[i]}`
-                  ];
-                }
-              }
-            }
-          }
-        }
+        // 行を作る
+        const tr = document.createElement('tr');
+        tr.onclick = () => window.open(url, '_blank');  // 新タブで開く
+        tr.innerHTML = `
+          <td>${name}</td>
+          <td>${avg.toLocaleString()}</td>
+          <td class="sub">${total.toLocaleString()} / ${count}</td>
+        `;
+        tbody.appendChild(tr);
       });
-    }
+    })
+    .catch(err => {
+      console.error(err);
+      document.getElementById('ranking-body').innerHTML =
+        '<tr><td colspan="3" style="color:red;">データ取得エラー</td></tr>';
+    });
   </script>
 </body>
 </html>
